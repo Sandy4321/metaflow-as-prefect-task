@@ -48,7 +48,7 @@ def print_output(output):
 mf_flow = MetaflowShellTask(
     command='run', # run is the default for this type of task, but we specify it anyway for readability
     flow_path=os.getenv('METAFLOW_LOCAL_PATH'),
-    env={'METAFLOW_PROFILE': 'metaflow'}
+    env={'METAFLOW_PROFILE': os.getenv('METAFLOW_PROFILE')}
 )
 
 # instantiate schedule and compose tasks into a full DAG
