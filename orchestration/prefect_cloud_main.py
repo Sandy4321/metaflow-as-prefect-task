@@ -72,7 +72,7 @@ with Flow(os.getenv('PREFECT_FLOW_NAME'), schedule) as flow:
     cnt_sum = prefect_sum(x, y)
     cnt_metaflow_average = mf_flow(flow_params={'sum': cnt_sum}, token=os.getenv('GITHUB_TOKEN'))
     print_output(cnt_metaflow_average)
-    cleanup(cnt_metaflow_average, os.getenv('METAFLOW_LOCAL_PATH'))
+    cleanup(cnt_metaflow_average, os.getenv('METAFLOW_LOCAL_CLONE_FOLDER'))
 
 # visualize it
 flow.visualize(filename='flow_viz')
