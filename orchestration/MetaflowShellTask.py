@@ -39,6 +39,8 @@ class MetaflowShellTask(ShellTask):
     def __init__(
         self,
         flow_path: str = None,
+        repo_name: str = None,  # needs to be owner/repo: jacopotagliabue/session-path
+        clone_folder: str = None, # local folder to clone, needs to be != None if repo name is specified
         command: str = 'run',
         env: dict = None,
         helper_script: str = None,
@@ -49,6 +51,10 @@ class MetaflowShellTask(ShellTask):
     ):
         self.command = command
         self.flow_path = flow_path
+        self.repo_name = repo_name
+        self.clone_folder = clone_folder
+        # repo_name if and only if clone_folder
+        assert (repo_name and clone_folder) or (not repo_name and not clone_folder)
         super().__init__(
             **kwargs,
             command=command,
@@ -65,7 +71,8 @@ class MetaflowShellTask(ShellTask):
         command: str = None,
         flow_params: dict = None,
         env: dict = None,
-        helper_script: str = None
+        helper_script: str = None,
+        token: str = None
     ) -> str:
         """
         If no profiles.yml file is found or if overwrite_profiles flag is set to True, this
@@ -91,6 +98,36 @@ class MetaflowShellTask(ShellTask):
             - prefect.engine.signals.FAIL: if command has an exit code other
                 than 0
         """
+        # clone repo into local folder if repo is specified
+        if self.repo_name and self.clone_folder:
+            # following https://github.com/PrefectHQ/prefect/blob/05cac2372c57a93ea72b05e7c844b1e115c01047/src/prefect/tasks/github/prs.py#L8
+            # we import requests and interact with github only here at run
+            import os
+            import shutil
+            import requests
+            import zipfile
+            from io import BytesIO
+            # make sure folder is there and empty - delete first if it's there, and create empty
+            if os.path.exists(self.clone_folder):
+                shutil.rmtree(self.clone_folder)
+            os.makedirs(self.clone_folder)
+            # prepare and send request to github
+            url = "https://api.github.com/repos/{}/zipball".format(self.repo_name)
+            headers = {
+                "AUTHORIZATION": "token {}".format(token),
+                "Accept": "application/vnd.github.v3+json",
+            }
+            request = requests.get(url, headers=headers)
+            zip_name = request.headers.get("Content-Disposition").split("filename=")[1]
+            self.logger.info("Downloading file {} at {}".format(zip_name, datetime.utcnow()))
+            # read the zip file in memory and extract it
+            file = zipfile.ZipFile(BytesIO(request.content))
+            file.extractall(self.clone_folder)
+            # the folder name is the name of the zip, without the extension
+            folder_name = zip_name.replace('.zip', '')
+            # overwrite flow_path by pre-pending the cloned folder dir
+            self.flow_path = os.path.join(self.clone_folder, folder_name, self.flow_path)
+            self.logger.info("New local flow path is: {}".format(self.flow_path))
 
         # check if there are params
         if flow_params:
