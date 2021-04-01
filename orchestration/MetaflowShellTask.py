@@ -44,8 +44,8 @@ class MetaflowShellTask(ShellTask):
         env: dict = None,
         helper_script: str = None,
         shell: str = "bash",
-        return_all: bool = False,
-        log_stderr: bool = False,
+        return_all: bool = True,
+        log_stderr: bool = True,
         **kwargs: Any
     ):
         self.command = command
@@ -99,8 +99,7 @@ class MetaflowShellTask(ShellTask):
         # build the final command
         metaflow_command = 'python {} {}'.format(self.flow_path, command)
         # log it for debugging purposes
-        logger = context.get("logger")
-        logger.info("Starting Metaflow run at {}, with cmd: {}".format(datetime.utcnow(), metaflow_command))
+        self.logger.info("Starting Metaflow run at {}, with cmd: {}".format(datetime.utcnow(), metaflow_command))
         # run it
         return super(MetaflowShellTask, self).run(
             command=metaflow_command, env=env, helper_script=helper_script

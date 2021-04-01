@@ -19,11 +19,25 @@ y = Parameter('y', default=6, required=False)
 
 # first prefect task sums two numbers - the sum is fed to Metaflow for the "summation flow"
 @task
-def prefect_sum(x: int, y: int):
+def prefect_sum(a: int, b: int):
     logger = prefect.context.get("logger")
-    logger.info("Starting summation of {}, {} at {}".format(x, y, datetime.utcnow()))
+    logger.info("Starting summation of {}, {} at {}".format(a, b, datetime.utcnow()))
 
-    return x + y
+    return a + b
+
+
+@task(log_stdout=True)
+def print_output(output):
+    """
+    Combination of this Github issue: https://github.com/PrefectHQ/prefect/issues/1013
+    and log_stdout from https://docs.prefect.io/core/idioms/logging.html
+
+    TODO: isn't there a better way to log from within the metaflow class?
+
+    :param output: output of a Flow shell run
+    :return:
+    """
+    print(output)
 
 
 # instantiate Flow class for metaflow, adding a custom profile as an env, matching the desired aws setup.
@@ -42,6 +56,7 @@ schedule = IntervalSchedule(interval=timedelta(minutes=60))
 with Flow(os.getenv('PREFECT_FLOW_NAME'), schedule) as flow:
     cnt_sum = prefect_sum(x, y)
     cnt_metaflow_average = mf_flow(flow_params={'sum': cnt_sum})
+    print_output(cnt_metaflow_average)
 
 # visualize it
 flow.visualize(filename='flow_viz')
