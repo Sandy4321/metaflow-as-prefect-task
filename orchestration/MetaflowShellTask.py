@@ -1,4 +1,3 @@
-from prefect import context
 from typing import Any
 from datetime import datetime
 from prefect.tasks.shell import ShellTask
